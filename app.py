@@ -24,7 +24,7 @@ BaseBob.prepare(engineBob, reflect=True)
 Measurement = BaseBob.classes.measurement
 Station = BaseBob.classes.station
 
-sessionBob = Session(engineBob)
+# sessionBob = Session(engineBob)
 
 
 # webpage code
@@ -52,24 +52,30 @@ def welcome():
 
 @appBob.route("/api/v1.0/precipitation")
 def precipitation():
+    sessionBob = Session(engineBob)
     prev_year = dt.date(2017, 8, 23) - dt.timedelta(days=365)
     precipi_data = sessionBob.query(Measurement.date, Measurement.prcp).\
     filter(Measurement.date >= prev_year).all()
+    sessionBob.close()
     precip = {date: prcp for date, prcp in precipi_data}
     return jsonify(precip)
 
 @appBob.route("/api/v1.0/stations")
 def stations():
+    sessionBob = Session(engineBob)
     results = sessionBob.query(Station.station).all()
+    sessionBob.close()
     stations = list(np.ravel(results))
     return jsonify(stations=stations)
 
 @appBob.route("/api/v1.0/tobs")
 def temp_monthly():
+    sessionBob = Session(engineBob)
     prev_year = dt.date(2017, 8, 23) - dt.timedelta(days=365)
     results = sessionBob.query(Measurement.tobs).\
     filter(Measurement.station == 'USC00519281').\
     filter(Measurement.date >= prev_year).all()
+    sessionBob.close()
     temps = list(np.ravel(results))
     return jsonify(temps=temps)
 
@@ -77,6 +83,7 @@ def temp_monthly():
 @appBob.route("/api/v1.0/temp/<start>")
 @appBob.route("/api/v1.0/temp/<start>/<end>")
 def stats(start=None, end=None):
+    sessionBob = Session(engineBob)
     # print(f"start is {start} with type {type(start)}")
     # print(f"end is {end} with type {type(end)}")
     sel = [func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)]
@@ -90,7 +97,8 @@ def stats(start=None, end=None):
     results = sessionBob.query(*sel).\
         filter(Measurement.date >= start).\
         filter(Measurement.date <= end).all()
-
+    
+    sessionBob.close()
     temps = list(np.ravel(results))
     return jsonify(temps)
 
